@@ -12,15 +12,8 @@
 
 ## Description
 
-This [**Docker**](https://www.docker.com/) image can be used to create an RTMP server for multimedia / video streaming using [**Nginx**](http://nginx.org/en/) and [**nginx-rtmp-module**](https://github.com/arut/nginx-rtmp-module), built from the current latest sources (Nginx 1.15.0 and nginx-rtmp-module 1.2.1).
-
-This was inspired by other similar previous images from [dvdgiessen](https://hub.docker.com/r/dvdgiessen/nginx-rtmp-docker/), [jasonrivers](https://hub.docker.com/r/jasonrivers/nginx-rtmp/), [aevumdecessus](https://hub.docker.com/r/aevumdecessus/docker-nginx-rtmp/) and by an [OBS Studio post](https://obsproject.com/forum/resources/how-to-set-up-your-own-private-rtmp-server-using-nginx.50/).
-
-The main purpose (and test case) to build it was to allow streaming from [**OBS Studio**](https://obsproject.com/) to different clients at the same time.
-
-**GitHub repo**: <https://github.com/tiangolo/nginx-rtmp-docker>
-
-**Docker Hub image**: <https://hub.docker.com/r/tiangolo/nginx-rtmp/>
+[tiangolo/nginx-rtmp-docker](https://github.com/tiangolo/nginx-rtmp-docker)をベースにひまスト用にカスタマイズをしたDockerファイルです。 
+ほぼオリジナルのままです。
 
 ## Details
 
