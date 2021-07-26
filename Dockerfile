@@ -52,6 +52,7 @@ RUN ln -sf /dev/stdout /var/log/nginx/access.log && \
 # Set up config file
 COPY nginx.conf /etc/nginx/nginx.conf
 
+# create HLS directory
 RUN mkdir -p /usr/local/nginx/html/ts
 RUN chmod 777 /usr/local/nginx/html/ts
 

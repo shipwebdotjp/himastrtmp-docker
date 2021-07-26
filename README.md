@@ -1,104 +1,67 @@
-[![Deploy](https://github.com/tiangolo/nginx-rtmp-docker/workflows/Deploy/badge.svg)](https://github.com/tiangolo/nginx-rtmp-docker/actions?query=workflow%3ADeploy)
+# himastrtmp-docker
 
-## Supported tags and respective `Dockerfile` links
+[**nginx-rtmp-module**](https://github.com/arut/nginx-rtmp-module) モジュールを有効にした[**Nginx**](http://nginx.org/en/)を[**Docker**](https://www.docker.com/) で実行するためのDockerfileとdocker-composeで実行するためのdocker-compose.ymlです。
 
-* [`latest` _(Dockerfile)_](https://github.com/tiangolo/nginx-rtmp-docker/blob/master/Dockerfile)
+## 説明
 
-**Note**: Note: There are [tags for each build date](https://hub.docker.com/r/tiangolo/nginx-rtmp/tags). If you need to "pin" the Docker image version you use, you can select one of those tags. E.g. `tiangolo/nginx-rtmp:latest-2020-08-16`.
+[tiangolo/nginx-rtmp-docker](https://github.com/tiangolo/nginx-rtmp-docker)をベースにひまスト用にHLS配信を行うカスタマイズを加えています。それ以外はオリジナルのままです。
 
-# nginx-rtmp
+## 使い方
 
-[**Docker**](https://www.docker.com/) image with [**Nginx**](http://nginx.org/en/) using the [**nginx-rtmp-module**](https://github.com/arut/nginx-rtmp-module) module for live multimedia (video) streaming.
-
-## Description
-
-[tiangolo/nginx-rtmp-docker](https://github.com/tiangolo/nginx-rtmp-docker)をベースにひまスト用にカスタマイズをしたDockerファイルです。 
-ほぼオリジナルのままです。
-
-## Details
-
-## How to use
-
-* For the simplest case, just run a container with this image:
+* Dockerとdocker-composeが動作する環境であることが前提です。
 
 ```bash
-docker run -d -p 1935:1935 --name nginx-rtmp tiangolo/nginx-rtmp
+git clone https://github.com/shipwebdotjp/himastrtmp-docker.git
+cd himastrtmp-docker
+docker-compose up -d --build
 ```
 
-## How to test with OBS Studio and VLC
+* TCPポート80と1935を使用しますので、ファイアウォールやルーターなどの設定で、2つのポートを開放して、Dockerホストに到達できるように設定してください。
 
-* Run a container with the command above
+## 注意
+80ポートを既に使用している場合(ApacheやNginxなどのWebサーバーがすでに稼働している場合)は同じポートをDockerで使用することはできないため、エラーが発生します。
 
+## OBS Studio での配信（プッシュ）
 
-* Open [OBS Studio](https://obsproject.com/)
-* Click the "Settings" button
-* Go to the "Stream" section
-* In "Stream Type" select "Custom Streaming Server"
-* In the "URL" enter the `rtmp://<ip_of_host>/live` replacing `<ip_of_host>` with the IP of the host in which the container is running. For example: `rtmp://192.168.0.30/live`
-* In the "Stream key" use a "key" that will be used later in the client URL to display that specific stream. For example: `test`
-* Click the "OK" button
-* In the section "Sources" click de "Add" button (`+`) and select a source (for example "Screen Capture") and configure it as you need
-* Click the "Start Streaming" button
+* [OBS Studio](https://obsproject.com/)の設定を開き、「配信」タブを開きます。
+* サービス　→　カスタム
+* サーバー　→  `rtmp://<DockerホストのIPアドレスかホスト名>/himastrtmp`
+* ストリームキー　→　`live`
+* 「OK」で設定を閉じ、「配信開始」ボタンで配信を開始します。
 
+## ひまスト配信コンソールでの設定
+* 配信設定タブで「外部サーバー」を選択
+* 外部サーバー URL　→ `rtmp://<DockerホストのIPアドレスかホスト名>/himastrtmp/live`
+* 「ENTER」キーを押してURLの変更を反映させます。
+* 「HLSのプレイリスト取得に成功しました。」と表示され配信が再生されれば成功です。
 
-* Open a [VLC](http://www.videolan.org/vlc/index.html) player (it also works in Raspberry Pi using `omxplayer`)
-* Click in the "Media" menu
-* Click in "Open Network Stream"
-* Enter the URL from above as `rtmp://<ip_of_host>/live/<key>` replacing `<ip_of_host>` with the IP of the host in which the container is running and `<key>` with the key you created in OBS Studio. For example: `rtmp://192.168.0.30/live/test`
-* Click "Play"
-* Now VLC should start playing whatever you are transmitting from OBS Studio
+## うまく動かない場合
 
-## Debugging
-
-If something is not working you can check the logs of the container with:
-
+Nginxの待ち受けがうまく出来ているか下記のコマンドで確認できます。
 ```bash
-docker logs nginx-rtmp
+docker-compose ps
+      Name               Command          State                                   Ports
+------------------------------------------------------------------------------------------------------------------------
+himastrtmp_web_1   nginx -g daemon off;   Up      0.0.0.0:1935->1935/tcp,:::1935->1935/tcp,
+                                                  0.0.0.0:80->80/tcp,:::80->80/tcp
 ```
-
-## Extending
-
-If you need to modify the configurations you can create a file `nginx.conf` and replace the one in this image using a `Dockerfile` that is based on the image, for example:
-
-```Dockerfile
-FROM tiangolo/nginx-rtmp
-
-COPY nginx.conf /etc/nginx/nginx.conf
+HLS配信のアクセスログ表示コマンド
+```bash
+docker-compose logs -f
 ```
+live-xx.tsファイルへのアクセスがあれば、ファイルへのアクセスが行われていることになります。
 
-The current `nginx.conf` contains:
 
-```Nginx
-worker_processes auto;
-rtmp_auto_push on;
-events {}
-rtmp {
-    server {
-        listen 1935;
-        listen [::]:1935 ipv6only=on;
+## 遅延
 
-        application live {
-            live on;
-            record off;
-        }
-    }
-}
+HLSでの配信はどうしても遅延が発生します。  
+`nginx.conf`でパラーメータを調整して、一つ一つの動画ファイルの断片を小さくすることで遅延を少なくできますが、その分負荷が高くなります。
+
+```conf
+hls_playlist_length 6s;
+hls_fragment 3s;
 ```
-
-You can start from it and modify it as you need. Here's the [documentation related to `nginx-rtmp-module`](https://github.com/arut/nginx-rtmp-module/wiki/Directives).
-
-## Technical details
-
-* This image is built from the same base official images that most of the other official images, as Python, Node, Postgres, Nginx itself, etc. Specifically, [buildpack-deps](https://hub.docker.com/_/buildpack-deps/) which is in turn based on [debian](https://hub.docker.com/_/debian/). So, if you have any other image locally you probably have the base image layers already downloaded.
-
-* It is built from the official sources of **Nginx** and **nginx-rtmp-module** without adding anything else. (Surprisingly, most of the available images that include **nginx-rtmp-module** are made from different sources, old versions or add several other components).
-
-* It has a simple default configuration that should allow you to send one or more streams to it and have several clients receiving multiple copies of those streams simultaneously. (It includes `rtmp_auto_push` and an automatic number of worker processes).
-
-## Latest Changes
-
-* Add CI with GitHub actions. PR [#15](https://github.com/tiangolo/nginx-rtmp-docker/pull/15).
-* Upgrade Nginx to version 1.18.0. PR [#13](https://github.com/tiangolo/nginx-rtmp-docker/pull/13) by [@Nathanael-Mtd](https://github.com/Nathanael-Mtd).
+この設定で、OBSの設定でキーフレームを1に設定した場合遅延は10秒ほどになりました。
 
 ## License
 
